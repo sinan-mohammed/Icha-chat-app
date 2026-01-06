@@ -5,13 +5,13 @@ import { useAuthStore } from "./useAuthStore";
 
 export const useChatStore = create((set, get) => ({
   messages: [],
-  users: [],              // 🔥 contacts only
+  users: [],              // contacts only
   selectedUser: null,
   isUsersLoading: false,
   isMessagesLoading: false,
 
   // ===============================
-  // GET CONTACTS (SIDEBAR USERS)
+  // GET CONTACTS
   // ===============================
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -35,7 +35,7 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get(
         `/messages/search?email=${email}`
       );
-      return res.data; // return found user
+      return res.data;
     } catch (error) {
       throw new Error(
         error.response?.data?.message || "User not found"
@@ -80,13 +80,17 @@ export const useChatStore = create((set, get) => ({
   // SEND MESSAGE
   // ===============================
   sendMessage: async (messageData) => {
-    const { selectedUser, messages } = get();
+    const { selectedUser } = get();
     try {
       const res = await axiosInstance.post(
         `/messages/send/${selectedUser._id}`,
         messageData
       );
-      set({ messages: [...messages, res.data] });
+
+      // ✅ append locally ONCE
+      set((state) => ({
+        messages: [...state.messages, res.data],
+      }));
     } catch (error) {
       toast.error(
         error.response?.data?.message || "Failed to send message"
@@ -95,7 +99,7 @@ export const useChatStore = create((set, get) => ({
   },
 
   // ===============================
-  // SOCKET SUBSCRIBE
+  // SOCKET SUBSCRIBE (🔥 FIXED)
   // ===============================
   subscribeToMessages: () => {
     const { selectedUser } = get();
@@ -103,25 +107,24 @@ export const useChatStore = create((set, get) => ({
 
     const socket = useAuthStore.getState().socket;
 
-    // New incoming message
+    // 🔥 VERY IMPORTANT: remove old listeners FIRST
+    socket.off("newMessage");
+    socket.off("deleteMessage");
+
     socket.on("newMessage", (newMessage) => {
-      const isFromSelectedUser =
-        newMessage.senderId === selectedUser._id;
+      if (newMessage.senderId !== selectedUser._id) return;
 
-      if (!isFromSelectedUser) return;
-
-      set({
-        messages: [...get().messages, newMessage],
-      });
+      set((state) => ({
+        messages: [...state.messages, newMessage],
+      }));
     });
 
-    // 🔥 Vanish-after-seen delete
     socket.on("deleteMessage", ({ messageId }) => {
-      set({
-        messages: get().messages.filter(
+      set((state) => ({
+        messages: state.messages.filter(
           (msg) => msg._id !== messageId
         ),
-      });
+      }));
     });
   },
 
