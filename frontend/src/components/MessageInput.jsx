@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
-  const [vanishAfterSeen, setVanishAfterSeen] = useState(false); // 👁️ persists
+  const [vanishAfterSeen, setVanishAfterSeen] = useState(false);
   const fileInputRef = useRef(null);
 
   const { sendMessage } = useChatStore();
@@ -19,9 +19,7 @@ const MessageInput = () => {
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-    };
+    reader.onloadend = () => setImagePreview(reader.result);
     reader.readAsDataURL(file);
   };
 
@@ -38,10 +36,9 @@ const MessageInput = () => {
       await sendMessage({
         text: text.trim(),
         image: imagePreview,
-        vanishAfterSeen, // ✅ uses current toggle state
+        vanishAfterSeen,
       });
 
-      // clear input ONLY (do NOT reset vanish toggle)
       setText("");
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -51,7 +48,8 @@ const MessageInput = () => {
   };
 
   return (
-    <div className="p-4 w-full">
+    <div className="p-3 w-full bg-base-100">
+      {/* Image preview */}
       {imagePreview && (
         <div className="mb-3 flex items-center gap-2">
           <div className="relative">
@@ -62,9 +60,8 @@ const MessageInput = () => {
             />
             <button
               onClick={removeImage}
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-base-300
-              flex items-center justify-center"
               type="button"
+              className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-base-300 flex items-center justify-center"
             >
               <X className="size-3" />
             </button>
@@ -73,57 +70,57 @@ const MessageInput = () => {
       )}
 
       <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-        <div className="flex-1 flex gap-2">
-          <input
-            type="text"
-            className="w-full input input-bordered rounded-lg input-sm sm:input-md"
-            placeholder="Type a message..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
+        {/* Input */}
+        <input
+          type="text"
+          className="flex-1 input input-bordered rounded-lg text-sm sm:text-base"
+          placeholder="Type a message..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
 
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            ref={fileInputRef}
-            onChange={handleImageChange}
-          />
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          ref={fileInputRef}
+          onChange={handleImageChange}
+        />
 
-          {/* Image picker */}
-          <button
-            type="button"
-            className={`hidden sm:flex btn btn-circle ${
-              imagePreview ? "text-emerald-500" : "text-zinc-400"
-            }`}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Image size={20} />
-          </button>
+        {/* 🖼️ Image button (MOBILE + DESKTOP) */}
+        <button
+          type="button"
+          className={`btn btn-circle min-w-[44px] min-h-[44px] ${
+            imagePreview ? "text-emerald-500" : "text-zinc-400"
+          }`}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Image size={20} />
+        </button>
 
-          {/* 👁️ Vanish toggle (PERSISTENT) */}
-          <button
-            type="button"
-            className={`btn btn-circle hidden sm:flex ${
-              vanishAfterSeen ? "text-red-500" : "text-zinc-400"
-            }`}
-            onClick={() => setVanishAfterSeen((prev) => !prev)}
-            title={
-              vanishAfterSeen
-                ? "Disable disappearing messages"
-                : "Enable disappearing messages"
-            }
-          >
-            {vanishAfterSeen ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
-        </div>
+        {/* 👁️ Vanish toggle (MOBILE + DESKTOP) */}
+        <button
+          type="button"
+          className={`btn btn-circle min-w-[44px] min-h-[44px] ${
+            vanishAfterSeen ? "text-red-500" : "text-zinc-400"
+          }`}
+          onClick={() => setVanishAfterSeen((prev) => !prev)}
+          title={
+            vanishAfterSeen
+              ? "Disable disappearing messages"
+              : "Enable disappearing messages"
+          }
+        >
+          {vanishAfterSeen ? <EyeOff size={20} /> : <Eye size={20} />}
+        </button>
 
+        {/* ✈️ Send */}
         <button
           type="submit"
-          className="btn btn-sm btn-circle"
+          className="btn btn-circle min-w-[44px] min-h-[44px]"
           disabled={!text.trim() && !imagePreview}
         >
-          <Send size={22} />
+          <Send size={20} />
         </button>
       </form>
 

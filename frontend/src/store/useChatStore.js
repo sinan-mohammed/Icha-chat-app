@@ -5,13 +5,13 @@ import { useAuthStore } from "./useAuthStore";
 
 export const useChatStore = create((set, get) => ({
   messages: [],
-  users: [],
+  users: [],              // 🔥 contacts only
   selectedUser: null,
   isUsersLoading: false,
   isMessagesLoading: false,
 
   // ===============================
-  // GET USERS
+  // GET CONTACTS (SIDEBAR USERS)
   // ===============================
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -19,9 +19,43 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get("/messages/users");
       set({ users: res.data });
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to load users");
+      toast.error(
+        error.response?.data?.message || "Failed to load contacts"
+      );
     } finally {
       set({ isUsersLoading: false });
+    }
+  },
+
+  // ===============================
+  // SEARCH USER BY EMAIL
+  // ===============================
+  searchUserByEmail: async (email) => {
+    try {
+      const res = await axiosInstance.get(
+        `/messages/search?email=${email}`
+      );
+      return res.data; // return found user
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || "User not found"
+      );
+    }
+  },
+
+  // ===============================
+  // ADD CONTACT
+  // ===============================
+  addContact: async (contactId) => {
+    try {
+      await axiosInstance.post("/messages/add-contact", {
+        contactId,
+      });
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Failed to add contact"
+      );
+      throw error;
     }
   },
 
@@ -34,7 +68,9 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get(`/messages/${userId}`);
       set({ messages: res.data });
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to load messages");
+      toast.error(
+        error.response?.data?.message || "Failed to load messages"
+      );
     } finally {
       set({ isMessagesLoading: false });
     }
@@ -52,7 +88,9 @@ export const useChatStore = create((set, get) => ({
       );
       set({ messages: [...messages, res.data] });
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send message");
+      toast.error(
+        error.response?.data?.message || "Failed to send message"
+      );
     }
   },
 
@@ -65,7 +103,7 @@ export const useChatStore = create((set, get) => ({
 
     const socket = useAuthStore.getState().socket;
 
-    // 🔹 New incoming message
+    // New incoming message
     socket.on("newMessage", (newMessage) => {
       const isFromSelectedUser =
         newMessage.senderId === selectedUser._id;
@@ -77,7 +115,7 @@ export const useChatStore = create((set, get) => ({
       });
     });
 
-    // 🔥 DELETE MESSAGE (VANISH AFTER SEEN)
+    // 🔥 Vanish-after-seen delete
     socket.on("deleteMessage", ({ messageId }) => {
       set({
         messages: get().messages.filter(
@@ -93,7 +131,7 @@ export const useChatStore = create((set, get) => ({
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
     socket.off("newMessage");
-    socket.off("deleteMessage"); // 🔥 IMPORTANT
+    socket.off("deleteMessage");
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),

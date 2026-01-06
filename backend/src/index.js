@@ -11,13 +11,17 @@ import { app, server } from "../lib/socket.js";
 
 dotenv.config();
 
-const PORT = process.env.PORT;
-const __dirname = path.resolve();
+const PORT = process.env.PORT || 5000;
 
-// ✅ CORS (THIS IS ENOUGH)
+// =======================
+// ✅ CORS (DEV + PROD SAFE)
+// =======================
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",      // local dev
+      "https://icha-chat-app.onrender.com" // change if Render gives different URL
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
@@ -26,22 +30,30 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-// Routes
+// =======================
+// ✅ API ROUTES
+// =======================
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 
-// Production build
+// =======================
+// ✅ SERVE FRONTEND (PROD)
+// =======================
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+  const frontendPath = path.join(process.cwd(), "frontend", "dist");
 
-  app.get("*", (req, res) => {
-    res.sendFile(
-      path.join(__dirname, "../frontend", "dist", "index.html")
-    );
+  app.use(express.static(frontendPath));
+
+  // ❗ IMPORTANT FIX: use "/*" NOT "*"
+  app.get("/*", (req, res) => {
+    res.sendFile(path.join(frontendPath, "index.html"));
   });
 }
 
+// =======================
+// ✅ START SERVER
+// =======================
 server.listen(PORT, () => {
-  console.log("Server is running on PORT:", PORT);
+  console.log("🚀 Server running on port:", PORT);
   connectDB();
 });

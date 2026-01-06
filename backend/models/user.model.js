@@ -7,19 +7,30 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+
     fullName: {
       type: String,
       required: true,
     },
+
     password: {
       type: String,
       required: true,
       minlength: 6,
     },
+
     profilePic: {
       type: String,
       default: "",
     },
+
+    // 🔥 NEW: contacts list (email-based chat system)
+    contacts: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   { timestamps: true }
 );

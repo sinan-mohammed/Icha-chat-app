@@ -5,20 +5,77 @@ import cloudinary from "../lib/cloudinary.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
 
 // ===============================
-// GET USERS FOR SIDEBAR
+// GET USERS FOR SIDEBAR (CONTACTS ONLY)
 // ===============================
 export const getUsersForSidebar = async (req, res) => {
   try {
-    const loggedInUserId = req.user._id;
+    const user = await User.findById(req.user._id)
+      .populate("contacts", "_id fullName profilePic email")
+      .select("contacts");
 
-    const filteredUsers = await User.find({
-      _id: { $ne: loggedInUserId },
-    }).select("-password");
-
-    res.status(200).json(filteredUsers);
+    res.status(200).json(user.contacts);
   } catch (error) {
     console.error("Error in getUsersForSidebar:", error.message);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ===============================
+// SEARCH USER BY EMAIL
+// ===============================
+export const searchUserByEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email }).select(
+      "_id fullName profilePic email"
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prevent adding yourself
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: "You cannot add yourself" });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error in searchUserByEmail:", error.message);
+    res.status(500).json({ message: "Search failed" });
+  }
+};
+
+// ===============================
+// ADD USER TO CONTACTS (🔥 FIXED: MUTUAL SAVE)
+// ===============================
+export const addToContacts = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { contactId } = req.body;
+
+    if (!contactId) {
+      return res.status(400).json({ message: "Contact ID required" });
+    }
+
+    // 🔥 Add contact to BOTH users (this fixes refresh issue)
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { contacts: contactId },
+    });
+
+    await User.findByIdAndUpdate(contactId, {
+      $addToSet: { contacts: userId },
+    });
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error("Error in addToContacts:", error.message);
+    res.status(500).json({ message: "Failed to add contact" });
   }
 };
 
@@ -93,7 +150,6 @@ export const markMessageAsSeen = async (req, res) => {
       return res.status(404).json({ error: "Message not found" });
     }
 
-    // Avoid double processing
     if (message.seen) {
       return res.sendStatus(200);
     }
@@ -101,7 +157,6 @@ export const markMessageAsSeen = async (req, res) => {
     message.seen = true;
     await message.save();
 
-    // 🔥 DELAYED VANISH LOGIC
     if (message.vanishAfterSeen) {
       setTimeout(async () => {
         const deletedMessage = await Message.findByIdAndDelete(messageId);
@@ -117,7 +172,7 @@ export const markMessageAsSeen = async (req, res) => {
         if (receiverSocketId) {
           io.to(receiverSocketId).emit("deleteMessage", { messageId });
         }
-      }, 3000); // ⏱️ 3 seconds delay
+      }, 3000);
     }
 
     res.sendStatus(200);
