@@ -19,11 +19,14 @@ const ChatContainer = () => {
   } = useChatStore();
 
   const { authUser } = useAuthStore();
-  const messageEndRef = useRef(null);
+
+  // 🔽 scroll anchor
+  const bottomRef = useRef(null);
 
   // 🔒 Track messages already marked as seen
   const seenMessagesRef = useRef(new Set());
 
+  // Fetch messages & subscribe
   useEffect(() => {
     if (!selectedUser?._id) return;
 
@@ -31,9 +34,9 @@ const ChatContainer = () => {
     subscribeToMessages();
 
     return () => unsubscribeFromMessages();
-  }, [selectedUser._id]);
+  }, [selectedUser?._id]);
 
-  // 🔥 MARK INCOMING MESSAGES AS SEEN
+  // Mark incoming messages as seen
   useEffect(() => {
     messages.forEach((message) => {
       const isIncoming = message.senderId !== authUser._id;
@@ -42,25 +45,19 @@ const ChatContainer = () => {
 
       if (isIncoming && notSeen && notProcessed) {
         seenMessagesRef.current.add(message._id);
-
-        // ✅ CORRECT: use axiosInstance
-        axiosInstance
-          .put(`/messages/seen/${message._id}`)
-          .catch(() => {});
+        axiosInstance.put(`/messages/seen/${message._id}`).catch(() => {});
       }
     });
   }, [messages, authUser._id]);
 
-  // Auto scroll
+  // Auto scroll (mobile friendly)
   useEffect(() => {
-    if (messageEndRef.current && messages.length > 0) {
-      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   if (isMessagesLoading) {
     return (
-      <div className="flex-1 flex flex-col overflow-auto">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <ChatHeader />
         <MessageSkeleton />
         <MessageInput />
@@ -69,17 +66,28 @@ const ChatContainer = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-auto">
+    <div className="flex-1 flex flex-col overflow-hidden">
       <ChatHeader />
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* MESSAGE LIST */}
+      <div
+        className="
+          flex-1
+          overflow-y-auto
+          overflow-x-hidden
+          p-4
+          space-y-4
+          pb-32   /* 🔥 space for fixed input */
+        "
+      >
         {messages.map((message) => (
           <div
             key={message._id}
             className={`chat ${
-              message.senderId === authUser._id ? "chat-end" : "chat-start"
+              message.senderId === authUser._id
+                ? "chat-end"
+                : "chat-start"
             }`}
-            ref={messageEndRef}
           >
             <div className="chat-image avatar">
               <div className="size-10 rounded-full border">
@@ -100,18 +108,17 @@ const ChatContainer = () => {
               </time>
             </div>
 
-            <div className="chat-bubble flex flex-col">
+            <div className="chat-bubble flex flex-col max-w-[85%]">
               {message.image && (
                 <img
                   src={message.image}
                   alt="Attachment"
-                  className="sm:max-w-[200px] rounded-md mb-2"
+                  className="max-w-[200px] rounded-md mb-2"
                 />
               )}
 
               {message.text && <p>{message.text}</p>}
 
-              {/* 🔥 Vanish indicator */}
               {message.vanishAfterSeen && !message.seen && (
                 <span className="text-[10px] text-gray-400 mt-1">
                   Disappears after seen
@@ -120,8 +127,12 @@ const ChatContainer = () => {
             </div>
           </div>
         ))}
+
+        {/* 🔽 SCROLL ANCHOR */}
+        <div ref={bottomRef} />
       </div>
 
+      {/* INPUT (FIXED AT BOTTOM) */}
       <MessageInput />
     </div>
   );
