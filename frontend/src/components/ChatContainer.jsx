@@ -19,14 +19,10 @@ const ChatContainer = () => {
   } = useChatStore();
 
   const { authUser } = useAuthStore();
-
-  // 🔽 scroll anchor
   const bottomRef = useRef(null);
-
-  // 🔒 Track messages already marked as seen
   const seenMessagesRef = useRef(new Set());
 
-  // Fetch messages & subscribe
+  // Load messages & socket
   useEffect(() => {
     if (!selectedUser?._id) return;
 
@@ -36,7 +32,7 @@ const ChatContainer = () => {
     return () => unsubscribeFromMessages();
   }, [selectedUser?._id]);
 
-  // Mark incoming messages as seen
+  // Mark messages as seen
   useEffect(() => {
     messages.forEach((message) => {
       const isIncoming = message.senderId !== authUser._id;
@@ -50,14 +46,14 @@ const ChatContainer = () => {
     });
   }, [messages, authUser._id]);
 
-  // Auto scroll (mobile friendly)
+  // Auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   if (isMessagesLoading) {
     return (
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col">
         <ChatHeader />
         <MessageSkeleton />
         <MessageInput />
@@ -66,7 +62,8 @@ const ChatContainer = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col h-full">
+      {/* HEADER */}
       <ChatHeader />
 
       {/* MESSAGE LIST */}
@@ -77,7 +74,7 @@ const ChatContainer = () => {
           overflow-x-hidden
           p-4
           space-y-4
-          pb-32   /* 🔥 space for fixed input */
+          pb-36   /* 👈 space for sticky input + keyboard */
         "
       >
         {messages.map((message) => (
@@ -89,6 +86,7 @@ const ChatContainer = () => {
                 : "chat-start"
             }`}
           >
+            {/* Avatar */}
             <div className="chat-image avatar">
               <div className="size-10 rounded-full border">
                 <img
@@ -97,17 +95,19 @@ const ChatContainer = () => {
                       ? authUser.profilePic || "/avatar.png"
                       : selectedUser.profilePic || "/avatar.png"
                   }
-                  alt="profile pic"
+                  alt="profile"
                 />
               </div>
             </div>
 
+            {/* Time */}
             <div className="chat-header mb-1">
               <time className="text-xs opacity-50 ml-1">
                 {formatMessageTime(message.createdAt)}
               </time>
             </div>
 
+            {/* Bubble */}
             <div className="chat-bubble flex flex-col max-w-[85%]">
               {message.image && (
                 <img
@@ -128,11 +128,11 @@ const ChatContainer = () => {
           </div>
         ))}
 
-        {/* 🔽 SCROLL ANCHOR */}
+        {/* SCROLL ANCHOR */}
         <div ref={bottomRef} />
       </div>
 
-      {/* INPUT (FIXED AT BOTTOM) */}
+      {/* INPUT (STICKY HANDLED INSIDE COMPONENT) */}
       <MessageInput />
     </div>
   );
