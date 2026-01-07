@@ -1,10 +1,15 @@
-import { X, ArrowLeft } from "lucide-react";
+import { X, ArrowLeft, AlertTriangle } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser } = useChatStore();
   const { onlineUsers } = useAuthStore();
+
+  // 🚨 PANIC BUTTON ACTION
+  const handleEmergency = () => {
+    window.location.href = "https://www.youtube.com";
+  };
 
   return (
     <div
@@ -16,6 +21,7 @@ const ChatHeader = () => {
         flex items-center justify-between
       "
     >
+      {/* LEFT SIDE */}
       <div className="flex items-center gap-3">
         {/* 🔙 BACK BUTTON (MOBILE ONLY) */}
         <button
@@ -44,13 +50,25 @@ const ChatHeader = () => {
         </div>
       </div>
 
-      {/* ❌ CLOSE BUTTON (DESKTOP ONLY) */}
-      <button
-        onClick={() => setSelectedUser(null)}
-        className="hidden lg:flex btn btn-ghost btn-circle"
-      >
-        <X size={20} />
-      </button>
+      {/* RIGHT SIDE ACTIONS */}
+      <div className="flex items-center gap-1">
+        {/* 🚨 EMERGENCY BUTTON (MOBILE + DESKTOP) */}
+        <button
+          onClick={handleEmergency}
+          className="btn btn-ghost btn-circle text-red-500"
+          title="Emergency"
+        >
+          <AlertTriangle size={20} />
+        </button>
+
+        {/* ❌ CLOSE BUTTON (DESKTOP ONLY) */}
+        <button
+          onClick={() => setSelectedUser(null)}
+          className="hidden lg:flex btn btn-ghost btn-circle"
+        >
+          <X size={20} />
+        </button>
+      </div>
     </div>
   );
 };
