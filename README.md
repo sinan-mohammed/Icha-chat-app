@@ -65,7 +65,7 @@ Smooth loading states & responsive design
 ## 🌍 Live Demo
 
 👉 **Try it here:**  
-`https://your-live-app-link.com`
+https://icha-chat-app-1.onrender.com
 
 ---
 
